@@ -1,0 +1,11 @@
+# Secrets / local config
+.env
+.env.local
+
+# Build artifacts
+/zruvix
+/zruvix.exe
+*.exe
+
+# Test / scratch logs
+*.log
