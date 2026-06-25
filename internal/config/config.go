@@ -13,15 +13,16 @@ import (
 
 // Config holds all runtime configuration for the zRuvix service.
 type Config struct {
-	HTTPPort               int
-	DiscordSpotifyActivity string
-	CommandPrefix          string
-	BotPresence            string
-	BotPresenceType        int
-	BotToken               string
-	RedisURI               string
-	IsIdempotent           bool
-	ExternalURL            string
+	HTTPPort                 int
+	DiscordSpotifyActivity   string
+	YouTubeMusicActivityName string
+	CommandPrefix            string
+	BotPresence              string
+	BotPresenceType          int
+	BotToken                 string
+	RedisURI                 string
+	IsIdempotent             bool
+	ExternalURL              string
 }
 
 // C is the process-wide configuration, populated by Load at startup. It is
@@ -40,15 +41,16 @@ func Load() *Config {
 	}
 
 	c := &Config{
-		HTTPPort:               envInt("PORT", 4001),
-		DiscordSpotifyActivity: "spotify:1",
-		CommandPrefix:          envStr("COMMAND_PREFIX", "?"),
-		BotPresence:            envStr("BOT_PRESENCE", "you <3"),
-		BotPresenceType:        envInt("BOT_PRESENCE_TYPE", 3),
-		BotToken:               os.Getenv("BOT_TOKEN"),
-		RedisURI:               redisURI(),
-		IsIdempotent:           os.Getenv("IS_IDEMPOTENT") == "true",
-		ExternalURL:            envStr("EXTERNAL_URL", "http://127.0.0.1:4001"),
+		HTTPPort:                 envInt("PORT", 4001),
+		DiscordSpotifyActivity:   "spotify:1",
+		YouTubeMusicActivityName: envStr("YOUTUBE_MUSIC_ACTIVITY_NAME", "YouTube Music"),
+		CommandPrefix:            envStr("COMMAND_PREFIX", "?"),
+		BotPresence:              envStr("BOT_PRESENCE", "you <3"),
+		BotPresenceType:          envInt("BOT_PRESENCE_TYPE", 3),
+		BotToken:                 os.Getenv("BOT_TOKEN"),
+		RedisURI:                 redisURI(),
+		IsIdempotent:             os.Getenv("IS_IDEMPOTENT") == "true",
+		ExternalURL:              envStr("EXTERNAL_URL", "http://127.0.0.1:4001"),
 	}
 	C = c
 	return c

@@ -179,14 +179,18 @@ func buildPretty(userID string, discordUser, discordPresence map[string]any, kv 
 	var pretty PrettyPresence
 	if discordPresence != nil {
 		activities := discordPresence["activities"]
-		var spotifyActivity map[string]any
+		var spotifyActivity, ytmActivity map[string]any
 		if list, ok := activities.([]any); ok {
 			for _, a := range list {
-				if m, ok := a.(map[string]any); ok {
-					if id, _ := m["id"].(string); id == config.C.DiscordSpotifyActivity {
-						spotifyActivity = m
-						break
-					}
+				m, ok := a.(map[string]any)
+				if !ok {
+					continue
+				}
+				if id, _ := m["id"].(string); id == config.C.DiscordSpotifyActivity {
+					spotifyActivity = m
+				}
+				if name, _ := m["name"].(string); ytmActivity == nil && name == config.C.YouTubeMusicActivityName {
+					ytmActivity = m
 				}
 			}
 		}
@@ -202,6 +206,8 @@ func buildPretty(userID string, discordUser, discordPresence map[string]any, kv 
 			ActiveOnDiscordVR:       clientStatusHas(discordPresence, "vr"),
 			ListeningToSpotify:      spotifyActivity != nil,
 			Spotify:                 buildPrettySpotify(spotifyActivity),
+			ListeningToYouTubeMusic: ytmActivity != nil,
+			YouTubeMusic:            buildPrettyYouTubeMusic(ytmActivity),
 			Activities:              buildPrettyActivities(activities),
 			KV:                      kv,
 		}

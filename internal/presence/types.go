@@ -28,6 +28,8 @@ type PrettyPresence struct {
 	ActiveOnDiscordVR       bool              `json:"active_on_discord_vr"`
 	ListeningToSpotify      bool              `json:"listening_to_spotify"`
 	Spotify                 *Spotify          `json:"spotify"`
+	ListeningToYouTubeMusic bool              `json:"listening_to_youtube_music"`
+	YouTubeMusic            *YouTubeMusic     `json:"youtube_music"`
 	Activities              []any             `json:"activities"`
 	KV                      map[string]string `json:"kv"`
 }
@@ -39,6 +41,18 @@ type Spotify struct {
 	Song        any     `json:"song"`
 	Album       *string `json:"album"`
 	AlbumArtURL *string `json:"album_art_url"`
+	Timestamps  any     `json:"timestamps"`
+}
+
+// YouTubeMusic is the crafted YouTube Music object, nil when not listening.
+// It mirrors the Spotify object's shape, plus a url to the track.
+type YouTubeMusic struct {
+	TrackID     *string `json:"track_id"`      // YouTube video id, parsed from the track url
+	Artist      any     `json:"artist"`        // activity "state"
+	Song        any     `json:"song"`          // activity "details"
+	Album       *string `json:"album"`         // assets.large_text
+	AlbumArtURL *string `json:"album_art_url"` // resolved assets.large_image
+	URL         *string `json:"url"`           // link to the track (details_url)
 	Timestamps  any     `json:"timestamps"`
 }
 

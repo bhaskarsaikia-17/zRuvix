@@ -225,6 +225,10 @@ func handleMe(_ []string, data map[string]any) {
 		fields = append(fields, field("🎵 Spotify",
 			fmt.Sprintf("**%v**\nby %v", p.Spotify.Song, p.Spotify.Artist), false))
 	}
+	if p.ListeningToYouTubeMusic && p.YouTubeMusic != nil {
+		fields = append(fields, field("📺 YouTube Music",
+			fmt.Sprintf("**%v**\nby %v", p.YouTubeMusic.Song, p.YouTubeMusic.Artist), false))
+	}
 	fields = append(fields, field("Activities", fmt.Sprintf("%d active", len(p.Activities)), true))
 	embed["fields"] = fields
 
