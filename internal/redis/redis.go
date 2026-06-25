@@ -1,5 +1,5 @@
 // Package redis wraps a go-redis client and reproduces the command surface of
-// Lanyard.Connectivity.Redis, including the lanyard:global_sync pub/sub bridge.
+// zRuvix.Connectivity.Redis, including the zruvix:global_sync pub/sub bridge.
 package redis
 
 import (
@@ -38,8 +38,8 @@ func Connect(uri string) error {
 }
 
 func subscribeGlobalSync() {
-	sub := client.Subscribe(ctx, "lanyard:global_sync")
-	log.Println("Redis: subscribed to lanyard:global_sync")
+	sub := client.Subscribe(ctx, "zruvix:global_sync")
+	log.Println("Redis: subscribed to zruvix:global_sync")
 	for msg := range sub.Channel() {
 		var payload struct {
 			NodeID int            `json:"node_id"`

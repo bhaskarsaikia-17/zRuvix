@@ -11,7 +11,7 @@ import (
 	"zruvix/internal/socket"
 )
 
-// Router builds the full HTTP handler tree, mirroring Lanyard.Api.Router.
+// Router builds the full HTTP handler tree, mirroring zRuvix.Api.Router.
 func Router() http.Handler {
 	r := chi.NewRouter()
 	r.Use(corsMiddleware)
@@ -41,9 +41,9 @@ func v1Router() http.Handler {
 
 func handleIndex(w http.ResponseWriter, _ *http.Request) {
 	respondOK(w, map[string]any{
-		"info":                 "zRuvix provides Discord presences as an API and WebSocket. It is a Go port of Lanyard (https://github.com/Phineas/lanyard).",
+		"info":                 "zRuvix exposes your Discord presence and activities as a REST API and WebSocket.",
 		"monitored_user_count": presence.Reg.Count(),
-		"discord_invite":       "https://discord.gg/lanyard",
+		"discord_invite":       "",
 	})
 }
 

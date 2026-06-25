@@ -1,4 +1,4 @@
-// Package presence is the heart of Lanyard. It maintains one Presence per
+// Package presence is the heart of zRuvix. It maintains one Presence per
 // monitored user (the Go analogue of the GenRegistry-of-Presence GenServers),
 // builds the user-facing PrettyPresence, caches it, and fans presence updates
 // out to subscribed client sockets.
@@ -24,7 +24,7 @@ type Presence struct {
 }
 
 // Registry is the concurrent set of monitored presences, replacing the Elixir
-// GenRegistry of Lanyard.Presence workers.
+// GenRegistry of zRuvix.Presence workers.
 type Registry struct {
 	mu sync.RWMutex
 	m  map[string]*Presence
@@ -74,7 +74,7 @@ func (r *Registry) IDs() []string {
 
 // LookupOrStart returns the existing presence for id or creates a new one. On
 // creation it loads the user's KV from Redis and broadcasts a PRESENCE_UPDATE
-// to all global subscribers — matching Lanyard.Presence.init.
+// to all global subscribers — matching zRuvix.Presence.init.
 func (r *Registry) LookupOrStart(id string, discordPresence, discordUser map[string]any) *Presence {
 	r.mu.Lock()
 	if p, ok := r.m[id]; ok {
@@ -92,7 +92,7 @@ func (r *Registry) LookupOrStart(id string, discordPresence, discordUser map[str
 
 	// init: load KV, build (and cache) pretty presence, notify global subscribers.
 	p.mu.Lock()
-	p.KV = redis.HGetAll("lanyard_kv:" + id)
+	p.KV = redis.HGetAll("zruvix_kv:" + id)
 	p.mu.Unlock()
 
 	pretty := p.BuildPretty()
@@ -122,7 +122,7 @@ func (r *Registry) SyncLocal(userID string, diff map[string]any) {
 
 // Sync merges diff into the presence's state, rebuilds the pretty presence and
 // fans it out to subscribers. Unless fromGlobal is set, it also republishes the
-// diff on lanyard:global_sync for other nodes. Mirrors Lanyard.Presence.sync.
+// diff on zruvix:global_sync for other nodes. Mirrors zRuvix.Presence.sync.
 func (r *Registry) Sync(userID string, diff map[string]any, fromGlobal bool) {
 	p, ok := r.Lookup(userID)
 	if !ok {
@@ -136,7 +136,7 @@ func (r *Registry) Sync(userID string, diff map[string]any, fromGlobal bool) {
 			"user_id": userID,
 			"diff":    diff,
 		})
-		redis.Publish("lanyard:global_sync", string(payload))
+		redis.Publish("zruvix:global_sync", string(payload))
 	}
 }
 
@@ -169,7 +169,7 @@ func (p *Presence) BuildPretty() PrettyPresence {
 	return buildPretty(p.UserID, duser, dpres, kv)
 }
 
-// buildPretty mirrors Lanyard.Presence.build_pretty_presence and stores the
+// buildPretty mirrors zRuvix.Presence.build_pretty_presence and stores the
 // result in the cache.
 func buildPretty(userID string, discordUser, discordPresence map[string]any, kv map[string]string) PrettyPresence {
 	if kv == nil {
@@ -230,11 +230,11 @@ func GetPresence(userID string) (*Presence, *Error) {
 	if p, ok := Reg.Lookup(userID); ok {
 		return p, nil
 	}
-	return nil, &Error{HTTPCode: 404, Code: "user_not_monitored", Message: "User is not being monitored by Lanyard"}
+	return nil, &Error{HTTPCode: 404, Code: "user_not_monitored", Message: "User is not being monitored by zRuvix"}
 }
 
 // GetPrettyPresence returns the cached pretty presence, building it from raw
-// state on a cache miss. Mirrors Lanyard.Presence.get_pretty_presence.
+// state on a cache miss. Mirrors zRuvix.Presence.get_pretty_presence.
 func GetPrettyPresence(userID string) (*PrettyPresence, *Error) {
 	if c, ok := cacheGet(userID); ok {
 		return &c, nil

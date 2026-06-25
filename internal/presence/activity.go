@@ -1,6 +1,6 @@
 package presence
 
-// buildPrettyActivities mirrors Lanyard.Presence.Activity.build_pretty_activities.
+// buildPrettyActivities mirrors zRuvix.Presence.Activity.build_pretty_activities.
 //
 // Note: the Elixir decorate_app_id/decorate_emoji clauses pattern-match on atom
 // keys (:application_id, :emoji), but the activities arrive as JSON-decoded maps

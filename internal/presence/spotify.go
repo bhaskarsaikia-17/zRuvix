@@ -2,7 +2,7 @@ package presence
 
 import "strings"
 
-// buildPrettySpotify mirrors Lanyard.Presence.Spotify.build_pretty_spotify.
+// buildPrettySpotify mirrors zRuvix.Presence.Spotify.build_pretty_spotify.
 // It returns nil when the activity is nil.
 func buildPrettySpotify(activity map[string]any) *Spotify {
 	if activity == nil {

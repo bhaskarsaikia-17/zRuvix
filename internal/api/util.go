@@ -1,6 +1,6 @@
 // Package api implements the HTTP layer: routing, REST response helpers, the
 // KV/user endpoints, and the Discord avatar quicklink proxy. It mirrors
-// Lanyard.Api.Router and friends.
+// zRuvix.Api.Router and friends.
 package api
 
 import (

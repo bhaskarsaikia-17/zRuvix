@@ -25,7 +25,7 @@ type Config struct {
 }
 
 // C is the process-wide configuration, populated by Load at startup. It is
-// the Go equivalent of Elixir's Application.get_env(:lanyard, ...).
+// the Go equivalent of Elixir's Application.get_env(:zRuvix, ...).
 var C *Config
 
 // Load reads configuration from the environment and stores it in C. If a .env
@@ -42,7 +42,7 @@ func Load() *Config {
 	c := &Config{
 		HTTPPort:               envInt("PORT", 4001),
 		DiscordSpotifyActivity: "spotify:1",
-		CommandPrefix:          envStr("COMMAND_PREFIX", "."),
+		CommandPrefix:          envStr("COMMAND_PREFIX", "?"),
 		BotPresence:            envStr("BOT_PRESENCE", "you <3"),
 		BotPresenceType:        envInt("BOT_PRESENCE_TYPE", 3),
 		BotToken:               os.Getenv("BOT_TOKEN"),

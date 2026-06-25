@@ -1,6 +1,6 @@
 // Package gateway implements the Discord gateway WebSocket client: it connects,
 // identifies (or resumes), heartbeats, and translates Discord dispatch events
-// into presence registry updates. It mirrors Lanyard.Gateway.Client.
+// into presence registry updates. It mirrors zRuvix.Gateway.Client.
 package gateway
 
 import (
@@ -33,7 +33,7 @@ const (
 	opHeartbeatACK        = 11
 )
 
-// Gateway intents (only those Lanyard needs).
+// Gateway intents (only those zRuvix needs).
 const (
 	intentGuilds         = 1 << 0
 	intentGuildMembers   = 1 << 1
@@ -203,8 +203,8 @@ func identifyPayload(s *session) map[string]any {
 		"token": s.token,
 		"properties": map[string]any{
 			"$os":               "go",
-			"$browser":          "lanyard-worker",
-			"$device":           "lanyard-go",
+			"$browser":          "zRuvix-worker",
+			"$device":           "zRuvix-go",
 			"$referrer":         "",
 			"$referring_domain": "",
 		},
@@ -263,7 +263,7 @@ func handleDispatch(ctx context.Context, gw *gwConn, s *session, event string, r
 
 	case "GUILD_CREATE":
 		createMemberPresences(d)
-		// The Lanyard guild exceeds large_threshold, so request all members.
+		// The zRuvix guild exceeds large_threshold, so request all members.
 		gw.send(ctx, opRequestGuildMembers, map[string]any{
 			"guild_id":  getString(d, "id"),
 			"limit":     0,

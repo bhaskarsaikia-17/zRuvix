@@ -1,6 +1,6 @@
 // Command zruvix is zRuvix: a Go service exposing Discord presences as a REST
-// API + WebSocket gateway backed by Redis. It is a port of the Lanyard Elixir
-// project and mirrors the supervision tree set up in Lanyard.start/2.
+// API + WebSocket gateway backed by Redis. It is a port of the zRuvix Elixir
+// project and mirrors the supervision tree set up in zRuvix.start/2.
 package main
 
 import (

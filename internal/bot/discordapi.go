@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"time"
 
 	"zruvix/internal/config"
 	"zruvix/internal/metrics"
@@ -15,11 +16,51 @@ import (
 
 const apiHost = "https://discord.com/api/v9"
 
-var httpClient = &http.Client{}
+// Embed colors (Discord brand palette).
+const (
+	ColorBrand   = 0x5865F2 // blurple
+	ColorSuccess = 0x57F287 // green
+	ColorError   = 0xED4245 // red
+)
+
+var httpClient = &http.Client{Timeout: 15 * time.Second}
 
 func authHeaders(req *http.Request) {
 	req.Header.Set("Authorization", "Bot "+config.C.BotToken)
 	req.Header.Set("Content-Type", "application/json")
+}
+
+// Embed builds a standard zRuvix embed with a consistent footer and timestamp.
+// Empty title/description fields are omitted. Add "fields", "thumbnail", etc.
+// to the returned map before sending.
+func Embed(title, description string, color int) map[string]any {
+	e := map[string]any{
+		"color":     color,
+		"footer":    map[string]any{"text": "zRuvix • Discord presence API"},
+		"timestamp": time.Now().UTC().Format(time.RFC3339),
+	}
+	if title != "" {
+		e["title"] = title
+	}
+	if description != "" {
+		e["description"] = description
+	}
+	return e
+}
+
+// field is a convenience constructor for embed fields.
+func field(name, value string, inline bool) map[string]any {
+	return map[string]any{"name": name, "value": value, "inline": inline}
+}
+
+// SendSuccess sends a green embed.
+func SendSuccess(channelID, title, description string) {
+	SendEmbed(channelID, Embed(title, description, ColorSuccess))
+}
+
+// SendErrorMsg sends a red error embed.
+func SendErrorMsg(channelID, description string) {
+	SendEmbed(channelID, Embed("Error", description, ColorError))
 }
 
 // SendMessage posts a plain-text message to a channel. Bare "@" is broken with

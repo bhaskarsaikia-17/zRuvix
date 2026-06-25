@@ -1,4 +1,4 @@
-// Package kv implements the Lanyard KV store interface (Lanyard.KV.Interface),
+// Package kv implements the zRuvix KV store interface (zRuvix.KV.Interface),
 // layering validation and presence syncing over the Redis hash store.
 package kv
 
@@ -47,7 +47,7 @@ func Set(userID, key, value string) (string, error) {
 		return "", verr
 	}
 
-	redis.HSet("lanyard_kv:"+userID, key, value)
+	redis.HSet("zruvix_kv:"+userID, key, value)
 	kv[key] = value
 	presence.Reg.Sync(userID, map[string]any{"kv": kv}, false)
 	return value, nil
@@ -56,7 +56,7 @@ func Set(userID, key, value string) (string, error) {
 // Multiset merges a map of pairs and syncs. Callers are expected to validate
 // pairs beforehand (the router does this), matching the Elixir flow.
 func Multiset(userID string, m map[string]string) error {
-	redis.HSetMap("lanyard_kv:"+userID, m)
+	redis.HSetMap("zruvix_kv:"+userID, m)
 
 	full, err := GetAll(userID)
 	if err != nil {
@@ -71,7 +71,7 @@ func Multiset(userID string, m map[string]string) error {
 
 // Del removes a key and syncs the presence.
 func Del(userID, key string) error {
-	redis.HDel("lanyard_kv:"+userID, key)
+	redis.HDel("zruvix_kv:"+userID, key)
 
 	kv, err := GetAll(userID)
 	if err != nil {
@@ -79,6 +79,14 @@ func Del(userID, key string) error {
 	}
 	delete(kv, key)
 	presence.Reg.Sync(userID, map[string]any{"kv": kv}, false)
+	return nil
+}
+
+// Clear removes ALL of a user's KV pairs (drops the whole Redis hash) and syncs
+// an empty KV to subscribers.
+func Clear(userID string) error {
+	redis.Del("zruvix_kv:" + userID)
+	presence.Reg.Sync(userID, map[string]any{"kv": map[string]string{}}, false)
 	return nil
 }
 

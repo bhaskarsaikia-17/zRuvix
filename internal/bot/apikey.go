@@ -46,22 +46,20 @@ func handleAPIKey(_ []string, data map[string]any) {
 	userID := authorID(data)
 	key := storeNewKey(userID)
 
-	SendEmbed(channelID, map[string]any{
-		"title": "zRuvix API Key",
-		"description": "**Absolutely do not share or post this key anywhere, it is a secret key that will allow anyone to manage your zRuvix K/V**\n\n" +
-			"**This key is not to be used in a front-end application/website**\n\n" +
-			"If you are looking for the public endpoint for your data, you would use your discord user ID like so\n" +
-			config.C.ExternalURL + "/v1/users/" + userID,
-		"color":  0x5865F2,
-		"footer": map[string]any{"text": "Run this command again if you need to re-generate your key"},
-		"fields": []any{
-			map[string]any{"name": "Key", "value": "||`" + key + "`||\n-# *click above to reveal*", "inline": false},
-		},
-	})
+	embed := Embed("🔑 Your zRuvix API key",
+		"This key lets you edit your saved data over HTTP.\n\n"+
+			"**Keep it secret** — anyone with it can change your data. Don't put it in a website or front-end.\n\n"+
+			"Your public data lives at:\n"+config.C.ExternalURL+"/v1/users/"+userID,
+		ColorBrand)
+	embed["footer"] = map[string]any{"text": "Run this command again to generate a new key"}
+	embed["fields"] = []any{
+		field("Key", "||`"+key+"`||\n-# *click above to reveal*", false),
+	}
+	SendEmbed(channelID, embed)
 }
 
 // regenerateAndDM rotates the key and DMs the user, used when a user leaks their
-// key inside a KV command.
+// key inside a command.
 func regenerateAndDM(userID string) {
 	key := storeNewKey(userID)
 	dmChannel := CreateDM(userID)
@@ -69,8 +67,8 @@ func regenerateAndDM(userID string) {
 		return
 	}
 	SendMessage(dmChannel,
-		":repeat: **We've regenerated your api key as you used it in a K/V command.**\n"+
+		":repeat: **We regenerated your API key because you posted the old one in a command.**\n"+
 			"Your new zRuvix API key is `"+key+"`\n\n"+
-			"**ABSOLUTELY DO NOT SHARE OR POST THIS KEY ANYWHERE IT WILL ALLOW ANYONE TO MANAGE YOUR zRuvix K/V**\n"+
-			"*Run `.apikey` in this DM if you need to re-generate your key*")
+			"**DO NOT SHARE OR POST THIS KEY ANYWHERE — anyone with it can change your saved data.**\n"+
+			"*Run `"+config.C.CommandPrefix+"apikey` in this DM to generate a new one.*")
 }

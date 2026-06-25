@@ -17,7 +17,7 @@ type Subscriber interface {
 }
 
 // PrettyPresence is the user-facing presence object returned by the REST API
-// and emitted over the socket. JSON tags match Lanyard.Presence.PrettyPresence.
+// and emitted over the socket. JSON tags match zRuvix.Presence.PrettyPresence.
 type PrettyPresence struct {
 	DiscordUser             map[string]any    `json:"discord_user"`
 	DiscordStatus           string            `json:"discord_status"`

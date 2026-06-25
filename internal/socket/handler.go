@@ -1,6 +1,6 @@
 // Package socket implements the client-facing WebSocket protocol described in
-// the Lanyard README (Opcodes 0-4, optional zlib_json compression). It mirrors
-// Lanyard.SocketHandler.
+// the zRuvix README (Opcodes 0-4, optional zlib_json compression). It mirrors
+// zRuvix.SocketHandler.
 package socket
 
 import (
