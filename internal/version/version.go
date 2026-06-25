@@ -4,7 +4,7 @@
 package version
 
 // Version is the current zRuvix release. Use semantic versioning.
-const Version = "1.4.0"
+const Version = "1.5.0"
 
 // Release is one entry in the changelog.
 type Release struct {
@@ -16,6 +16,16 @@ type Release struct {
 
 // Changelog lists releases newest-first.
 var Changelog = []Release{
+	{
+		Version: "1.5.0",
+		Date:    "2026-06-25",
+		Title:   "Listening History+, Top Tracks & Data Deletion",
+		Changes: []string{
+			"Track history now stores the full now_playing object (album_art_url, track_url, timestamps, duration_ms) so history can render album art and progress",
+			"New most-played endpoint /v1/users/:id/top-tracks?limit=10 ranking tracks by play count, each with full song details",
+			"New ?forget command lets users delete their own presence, listening history and most-played data",
+		},
+	},
 	{
 		Version: "1.4.0",
 		Date:    "2026-06-25",
