@@ -23,6 +23,7 @@ type Config struct {
 	RedisURI                 string
 	IsIdempotent             bool
 	ExternalURL              string
+	DocsURL                  string
 }
 
 // C is the process-wide configuration, populated by Load at startup. It is
@@ -51,6 +52,7 @@ func Load() *Config {
 		RedisURI:                 redisURI(),
 		IsIdempotent:             os.Getenv("IS_IDEMPOTENT") == "true",
 		ExternalURL:              envStr("EXTERNAL_URL", "https://api.zruvix.com"),
+		DocsURL:                  envStr("DOCS_URL", "https://docs.zruvix.com"),
 	}
 	C = c
 	return c
