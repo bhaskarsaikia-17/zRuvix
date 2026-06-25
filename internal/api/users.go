@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"strconv"
 
 	"github.com/go-chi/chi/v5"
 
@@ -19,6 +20,7 @@ func usersRouter() http.Handler {
 	r.Get("/{id}", handleGetUser)
 	r.Get("/{id}/history", handleHistory)
 	r.Get("/{id}/stats", handleStats)
+	r.Get("/{id}/top-tracks", handleTopTracks)
 	r.Get("/{id}/card.svg", handleCard)
 	r.Patch("/{id}/kv", handlePatchKV)
 	r.Put("/{id}/kv/{field}", handlePutKV)
@@ -50,6 +52,20 @@ func handleHistory(w http.ResponseWriter, r *http.Request) {
 // handleStats returns aggregate presence statistics for a user.
 func handleStats(w http.ResponseWriter, r *http.Request) {
 	respondOK(w, presence.Stats(chi.URLParam(r, "id")))
+}
+
+// handleTopTracks returns a user's most-played tracks (default 10, max 50),
+// each with full song details and a play_count. Works offline (reads Redis).
+func handleTopTracks(w http.ResponseWriter, r *http.Request) {
+	limit := 10
+	if q := r.URL.Query().Get("limit"); q != "" {
+		if n, err := strconv.Atoi(q); err == nil && n > 0 {
+			limit = n
+		}
+	}
+	respondOK(w, map[string]any{
+		"top_tracks": presence.MostPlayed(chi.URLParam(r, "id"), limit),
+	})
 }
 
 func respondPresence(w http.ResponseWriter, userID string) {

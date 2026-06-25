@@ -27,6 +27,8 @@ func commandMap() map[string]commandFunc {
 		"list":  handleKV,
 		"count": handleCount,
 		"clear": handleClear,
+		// Data control
+		"forget": handleForget,
 		// Presence / service
 		"me":       handleMe,
 		"presence": handleMe,
@@ -194,6 +196,25 @@ func handleClear(args []string, data map[string]any) {
 	SendSuccess(channelID, "🧹 Cleared", "Everything you saved has been deleted.")
 }
 
+// handleForget deletes the user's presence/listening data: status history,
+// listening history, most-played tracks and play counts. KV is untouched
+// (use `clear` for that). Requires explicit confirmation.
+func handleForget(args []string, data map[string]any) {
+	userID := authorID(data)
+	channelID := stringField(data, "channel_id")
+
+	if len(args) == 0 || strings.ToLower(args[0]) != "confirm" {
+		SendEmbed(channelID, Embed("⚠️ Confirm deletion",
+			fmt.Sprintf("This permanently deletes your **presence history** — status history, listening history, and your most-played tracks & play counts. This cannot be undone.\n\nRun `%sforget confirm` to proceed.\n\n*(This does not touch your saved labels — use `%sclear confirm` for those.)*",
+				config.C.CommandPrefix, config.C.CommandPrefix),
+			ColorError))
+		return
+	}
+	presence.PurgeHistory(userID)
+	SendSuccess(channelID, "🧹 History deleted",
+		"Your status history, listening history and most-played data have been permanently deleted.")
+}
+
 // --- presence / service commands --------------------------------------------
 
 func handleMe(_ []string, data map[string]any) {
@@ -285,6 +306,9 @@ func handleHelp(_ []string, data map[string]any) {
 			"`%[1]sme` — show your live presence\n"+
 				"`%[1]sstats` — service stats\n"+
 				"`%[1]sping` — is the bot alive?", p), false),
+		field("🗂️ Your data", fmt.Sprintf(
+			"`%[1]sclear confirm` — delete everything you saved (labels)\n"+
+				"`%[1]sforget confirm` — delete your presence & listening history (incl. most-played)", p), false),
 		field("🔑 API access", fmt.Sprintf(
 			"`%[1]sapikey` — get your secret key (DM only) to edit data over HTTP\n"+
 				"`%[1]sinvite` — your API links\n"+
