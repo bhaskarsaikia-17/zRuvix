@@ -184,7 +184,7 @@ func buildPretty(userID string, discordUser, discordPresence map[string]any, kv 
 	var pretty PrettyPresence
 	if discordPresence != nil {
 		activities := discordPresence["activities"]
-		var spotifyActivity, ytmActivity map[string]any
+		var spotifyActivity, ytmActivity, customActivity map[string]any
 		if list, ok := activities.([]any); ok {
 			for _, a := range list {
 				m, ok := a.(map[string]any)
@@ -196,6 +196,9 @@ func buildPretty(userID string, discordUser, discordPresence map[string]any, kv 
 				}
 				if name, _ := m["name"].(string); ytmActivity == nil && name == config.C.YouTubeMusicActivityName {
 					ytmActivity = m
+				}
+				if t, ok := m["type"].(float64); ok && int(t) == 4 && customActivity == nil {
+					customActivity = m
 				}
 			}
 		}
@@ -211,6 +214,7 @@ func buildPretty(userID string, discordUser, discordPresence map[string]any, kv 
 			ActiveOnDiscordMobile:   clientStatusHas(discordPresence, "mobile"),
 			ActiveOnDiscordEmbedded: clientStatusHas(discordPresence, "embedded"),
 			ActiveOnDiscordVR:       clientStatusHas(discordPresence, "vr"),
+			CustomStatus:            buildCustomStatus(customActivity),
 			ListeningToSpotify:      spotifyActivity != nil,
 			Spotify:                 sp,
 			ListeningToYouTubeMusic: ytmActivity != nil,

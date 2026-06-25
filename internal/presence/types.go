@@ -26,6 +26,7 @@ type PrettyPresence struct {
 	ActiveOnDiscordMobile   bool              `json:"active_on_discord_mobile"`
 	ActiveOnDiscordEmbedded bool              `json:"active_on_discord_embedded"`
 	ActiveOnDiscordVR       bool              `json:"active_on_discord_vr"`
+	CustomStatus            *CustomStatus     `json:"custom_status"`
 	ListeningToSpotify      bool              `json:"listening_to_spotify"`
 	Spotify                 *Spotify          `json:"spotify"`
 	ListeningToYouTubeMusic bool              `json:"listening_to_youtube_music"`
@@ -55,6 +56,23 @@ type YouTubeMusic struct {
 	AlbumArtURL *string `json:"album_art_url"` // resolved assets.large_image
 	URL         *string `json:"url"`           // link to the track (details_url)
 	Timestamps  any     `json:"timestamps"`
+}
+
+// CustomStatus is the user's Discord custom status (the activity with type 4),
+// surfaced as a clean field. It is nil when the user has no custom status set.
+// The raw activity also remains in the Activities array.
+type CustomStatus struct {
+	Text  *string            `json:"text"`  // the status text (activity "state"), nil when only an emoji is set
+	Emoji *CustomStatusEmoji `json:"emoji"` // nil when no emoji is set
+}
+
+// CustomStatusEmoji describes the emoji attached to a custom status. For a
+// unicode emoji, Name is the character and ID is nil; for a custom guild emoji,
+// Name is the emoji name and ID is its snowflake.
+type CustomStatusEmoji struct {
+	Name     *string `json:"name"`
+	ID       *string `json:"id"`
+	Animated bool    `json:"animated"`
 }
 
 // NowPlaying is a single, source-agnostic music object that normalizes whatever

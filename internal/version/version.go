@@ -4,7 +4,7 @@
 package version
 
 // Version is the current zRuvix release. Use semantic versioning.
-const Version = "1.2.0"
+const Version = "1.3.0"
 
 // Release is one entry in the changelog.
 type Release struct {
@@ -16,6 +16,15 @@ type Release struct {
 
 // Changelog lists releases newest-first.
 var Changelog = []Release{
+	{
+		Version: "1.3.0",
+		Date:    "2026-06-25",
+		Title:   "Custom Status",
+		Changes: []string{
+			"New custom_status field exposing the user's Discord custom status text and emoji",
+			"Docs now live at a dedicated site; /v1/docs redirects to DOCS_URL (docs.zruvix.com)",
+		},
+	},
 	{
 		Version: "1.2.0",
 		Date:    "2026-06-25",
