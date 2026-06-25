@@ -7,9 +7,12 @@ package presence
 import (
 	"encoding/json"
 	"fmt"
+	"strconv"
+	"strings"
 	"sync"
 
 	"zruvix/internal/config"
+	"zruvix/internal/discord"
 	"zruvix/internal/redis"
 )
 
@@ -21,6 +24,12 @@ type Presence struct {
 	DiscordPresence map[string]any
 	KV              map[string]string
 	subscribers     map[Subscriber]struct{}
+
+	// banner / accent_color are not in gateway payloads; they are fetched
+	// lazily from the REST API on first read and cached here.
+	banner      *string
+	accentColor *int
+	bannerTried bool
 
 	// change markers for history recording
 	lastStatus  string
@@ -156,10 +165,11 @@ func (p *Presence) applySync(diff map[string]any) {
 		p.KV = asKV(v)
 	}
 	duser, dpres, kv := p.DiscordUser, p.DiscordPresence, p.KV
+	banner, accent := p.banner, p.accentColor
 	subs := p.subscriberList()
 	p.mu.Unlock()
 
-	pretty := buildPretty(p.UserID, duser, dpres, kv)
+	pretty := buildPretty(p.UserID, duser, dpres, kv, banner, accent)
 	recordHistory(p, &pretty)
 	for _, s := range subs {
 		s.SendEvent(SocketMessage{Op: 0, T: "PRESENCE_UPDATE", D: pretty})
@@ -170,13 +180,14 @@ func (p *Presence) applySync(diff map[string]any) {
 func (p *Presence) BuildPretty() PrettyPresence {
 	p.mu.RLock()
 	duser, dpres, kv := p.DiscordUser, p.DiscordPresence, p.KV
+	banner, accent := p.banner, p.accentColor
 	p.mu.RUnlock()
-	return buildPretty(p.UserID, duser, dpres, kv)
+	return buildPretty(p.UserID, duser, dpres, kv, banner, accent)
 }
 
 // buildPretty mirrors zRuvix.Presence.build_pretty_presence and stores the
 // result in the cache.
-func buildPretty(userID string, discordUser, discordPresence map[string]any, kv map[string]string) PrettyPresence {
+func buildPretty(userID string, discordUser, discordPresence map[string]any, kv map[string]string, banner *string, accentColor *int) PrettyPresence {
 	if kv == nil {
 		kv = map[string]string{}
 	}
@@ -239,6 +250,17 @@ func buildPretty(userID string, discordUser, discordPresence map[string]any, kv 
 			cacheKey = id
 		}
 	}
+
+	// member_since is the Discord account creation time, derived from the
+	// user-id snowflake (no API call). banner / accent_color come from the
+	// lazily-fetched REST user object.
+	pretty.MemberSince = snowflakeCreatedMs(cacheKey)
+	pretty.Banner = banner
+	pretty.AccentColor = accentColor
+	if banner != nil {
+		pretty.BannerURL = bannerURL(cacheKey, *banner)
+	}
+
 	cacheSet(cacheKey, pretty)
 	return pretty
 }
@@ -254,12 +276,15 @@ func GetPresence(userID string) (*Presence, *Error) {
 // GetPrettyPresence returns the cached pretty presence, building it from raw
 // state on a cache miss. Mirrors zRuvix.Presence.get_pretty_presence.
 func GetPrettyPresence(userID string) (*PrettyPresence, *Error) {
-	if c, ok := cacheGet(userID); ok {
-		return &c, nil
-	}
 	p, err := GetPresence(userID)
 	if err != nil {
 		return nil, err
+	}
+	// Kick off a one-time banner/accent enrichment (async; the current
+	// response may not include it, the next read will).
+	p.ensureBanner()
+	if c, ok := cacheGet(userID); ok {
+		return &c, nil
 	}
 	pretty := p.BuildPretty()
 	return &pretty, nil
@@ -418,4 +443,76 @@ func asKV(v any) map[string]string {
 		return out
 	}
 	return map[string]string{}
+}
+
+// discordEpochMs is Discord's epoch (2015-01-01T00:00:00Z) in Unix ms.
+const discordEpochMs = 1420070400000
+
+// snowflakeCreatedMs derives the account/object creation time (Unix ms) encoded
+// in a Discord snowflake id. Returns nil if the id is not a valid snowflake.
+func snowflakeCreatedMs(id string) *int64 {
+	n, err := strconv.ParseUint(id, 10, 64)
+	if err != nil {
+		return nil
+	}
+	ms := int64(n>>22) + discordEpochMs
+	return &ms
+}
+
+// bannerURL builds a Discord CDN banner URL for a user id + banner hash.
+// Animated banners (hash prefixed with "a_") are served as gif.
+func bannerURL(id, hash string) *string {
+	ext := "png"
+	if strings.HasPrefix(hash, "a_") {
+		ext = "gif"
+	}
+	u := fmt.Sprintf("https://cdn.discordapp.com/banners/%s/%s.%s?size=1024", id, hash, ext)
+	return &u
+}
+
+// ensureBanner fetches the user's banner + accent_color from the REST API once
+// per process (gateway payloads omit these). The fetch runs in the background;
+// when it completes it updates the cached pretty presence and fans the update
+// out to subscribers so live clients pick up the banner too.
+func (p *Presence) ensureBanner() {
+	p.mu.Lock()
+	if p.bannerTried {
+		p.mu.Unlock()
+		return
+	}
+	p.bannerTried = true
+	id := p.UserID
+	p.mu.Unlock()
+
+	go func() {
+		u, err := discord.FetchUser(id)
+		if err != nil || u == nil {
+			return
+		}
+
+		var banner *string
+		var accent *int
+		if b, ok := u["banner"].(string); ok && b != "" {
+			banner = &b
+		}
+		if a, ok := u["accent_color"].(float64); ok {
+			ai := int(a)
+			accent = &ai
+		}
+		if banner == nil && accent == nil {
+			return
+		}
+
+		p.mu.Lock()
+		p.banner = banner
+		p.accentColor = accent
+		duser, dpres, kv := p.DiscordUser, p.DiscordPresence, p.KV
+		subs := p.subscriberList()
+		p.mu.Unlock()
+
+		pretty := buildPretty(p.UserID, duser, dpres, kv, banner, accent)
+		for _, s := range subs {
+			s.SendEvent(SocketMessage{Op: 0, T: "PRESENCE_UPDATE", D: pretty})
+		}
+	}()
 }

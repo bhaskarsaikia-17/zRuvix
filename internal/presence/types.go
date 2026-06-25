@@ -33,6 +33,10 @@ type PrettyPresence struct {
 	YouTubeMusic            *YouTubeMusic     `json:"youtube_music"`
 	NowPlaying              *NowPlaying       `json:"now_playing"`
 	Activities              []any             `json:"activities"`
+	Banner                  *string           `json:"banner"`
+	BannerURL               *string           `json:"banner_url"`
+	AccentColor             *int              `json:"accent_color"`
+	MemberSince             *int64            `json:"member_since"`
 	KV                      map[string]string `json:"kv"`
 }
 
