@@ -50,7 +50,7 @@ func Load() *Config {
 		BotToken:                 os.Getenv("BOT_TOKEN"),
 		RedisURI:                 redisURI(),
 		IsIdempotent:             os.Getenv("IS_IDEMPOTENT") == "true",
-		ExternalURL:              envStr("EXTERNAL_URL", "http://127.0.0.1:4001"),
+		ExternalURL:              envStr("EXTERNAL_URL", "https://api.zruvix.com"),
 	}
 	C = c
 	return c

@@ -17,6 +17,9 @@ func usersRouter() http.Handler {
 	r := chi.NewRouter()
 	r.Get("/@me", handleMe)
 	r.Get("/{id}", handleGetUser)
+	r.Get("/{id}/history", handleHistory)
+	r.Get("/{id}/stats", handleStats)
+	r.Get("/{id}/card.svg", handleCard)
 	r.Patch("/{id}/kv", handlePatchKV)
 	r.Put("/{id}/kv/{field}", handlePutKV)
 	r.Delete("/{id}/kv/{field}", handleDeleteKV)
@@ -37,6 +40,16 @@ func handleMe(w http.ResponseWriter, r *http.Request) {
 
 func handleGetUser(w http.ResponseWriter, r *http.Request) {
 	respondPresence(w, chi.URLParam(r, "id"))
+}
+
+// handleHistory returns recent status/track history for a user (works offline).
+func handleHistory(w http.ResponseWriter, r *http.Request) {
+	respondOK(w, presence.History(chi.URLParam(r, "id")))
+}
+
+// handleStats returns aggregate presence statistics for a user.
+func handleStats(w http.ResponseWriter, r *http.Request) {
+	respondOK(w, presence.Stats(chi.URLParam(r, "id")))
 }
 
 func respondPresence(w http.ResponseWriter, userID string) {

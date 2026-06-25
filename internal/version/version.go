@@ -1,0 +1,54 @@
+// Package version is the single source of truth for the zRuvix version and its
+// changelog. Bump Version and prepend a Release here when shipping changes;
+// the value flows into the bot (?stats), the docs page, and /v1/version.
+package version
+
+// Version is the current zRuvix release. Use semantic versioning.
+const Version = "1.2.0"
+
+// Release is one entry in the changelog.
+type Release struct {
+	Version string   `json:"version"`
+	Date    string   `json:"date"` // YYYY-MM-DD
+	Title   string   `json:"title"`
+	Changes []string `json:"changes"`
+}
+
+// Changelog lists releases newest-first.
+var Changelog = []Release{
+	{
+		Version: "1.2.0",
+		Date:    "2026-06-25",
+		Title:   "Now Playing, Status Cards, History & Docs",
+		Changes: []string{
+			"Unified now_playing object normalizing Spotify and YouTube Music",
+			"Live animated SVG status card at /v1/users/:id/card.svg",
+			"Presence history (/v1/users/:id/history) and stats (/v1/users/:id/stats)",
+			"Documentation page at /v1/docs with this changelog",
+			"New /v1/version endpoint and centralized version system",
+			"Faster-failing Redis timeouts so handlers never hang when Redis is down",
+		},
+	},
+	{
+		Version: "1.1.0",
+		Date:    "2026-06-25",
+		Title:   "Bot UX & YouTube Music",
+		Changes: []string{
+			"Embed-based bot responses with plain-language wording",
+			"New commands: help, me, stats, ping, count, clear, invite, list",
+			"Default command prefix changed to '?'",
+			"YouTube Music detection (listening_to_youtube_music / youtube_music)",
+		},
+	},
+	{
+		Version: "1.0.0",
+		Date:    "2026-06-25",
+		Title:   "Initial release",
+		Changes: []string{
+			"Go port of the Lanyard API (REST + WebSocket) as zRuvix",
+			"Discord gateway client, presence registry, and KV store",
+			"Discord bot with KV commands; Redis storage with cross-node sync",
+			"Prometheus metrics, .env configuration, and setup.sh installer/service",
+		},
+	},
+}

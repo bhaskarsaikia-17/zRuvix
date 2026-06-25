@@ -8,10 +8,8 @@ import (
 	"zruvix/internal/config"
 	"zruvix/internal/kv"
 	"zruvix/internal/presence"
+	"zruvix/internal/version"
 )
-
-// Version is reported by the ?stats command.
-const Version = "1.0.0"
 
 // startTime is captured at package init for uptime reporting.
 var startTime = time.Now()
@@ -250,7 +248,7 @@ func handleStats(_ []string, data map[string]any) {
 	embed["fields"] = []any{
 		field("Monitored users", fmt.Sprintf("%d", presence.Reg.Count()), true),
 		field("Uptime", up.String(), true),
-		field("Version", Version, true),
+		field("Version", version.Version, true),
 	}
 	SendEmbed(channelID, embed)
 }

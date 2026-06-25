@@ -21,6 +21,10 @@ type Presence struct {
 	DiscordPresence map[string]any
 	KV              map[string]string
 	subscribers     map[Subscriber]struct{}
+
+	// change markers for history recording
+	lastStatus  string
+	lastTrackID string
 }
 
 // Registry is the concurrent set of monitored presences, replacing the Elixir
@@ -156,6 +160,7 @@ func (p *Presence) applySync(diff map[string]any) {
 	p.mu.Unlock()
 
 	pretty := buildPretty(p.UserID, duser, dpres, kv)
+	recordHistory(p, &pretty)
 	for _, s := range subs {
 		s.SendEvent(SocketMessage{Op: 0, T: "PRESENCE_UPDATE", D: pretty})
 	}
@@ -196,6 +201,8 @@ func buildPretty(userID string, discordUser, discordPresence map[string]any, kv 
 		}
 
 		status, _ := discordPresence["status"].(string)
+		sp := buildPrettySpotify(spotifyActivity)
+		ytm := buildPrettyYouTubeMusic(ytmActivity)
 		pretty = PrettyPresence{
 			DiscordUser:             discordUser,
 			DiscordStatus:           status,
@@ -205,9 +212,10 @@ func buildPretty(userID string, discordUser, discordPresence map[string]any, kv 
 			ActiveOnDiscordEmbedded: clientStatusHas(discordPresence, "embedded"),
 			ActiveOnDiscordVR:       clientStatusHas(discordPresence, "vr"),
 			ListeningToSpotify:      spotifyActivity != nil,
-			Spotify:                 buildPrettySpotify(spotifyActivity),
+			Spotify:                 sp,
 			ListeningToYouTubeMusic: ytmActivity != nil,
-			YouTubeMusic:            buildPrettyYouTubeMusic(ytmActivity),
+			YouTubeMusic:            ytm,
+			NowPlaying:              buildNowPlaying(sp, ytm),
 			Activities:              buildPrettyActivities(activities),
 			KV:                      kv,
 		}

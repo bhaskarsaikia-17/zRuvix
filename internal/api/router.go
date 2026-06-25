@@ -34,6 +34,8 @@ func Router() http.Handler {
 
 func v1Router() http.Handler {
 	r := chi.NewRouter()
+	r.Get("/docs", handleDocs)
+	r.Get("/version", handleVersion)
 	r.Mount("/users", usersRouter())
 	r.NotFound(func(w http.ResponseWriter, _ *http.Request) { notFound(w) })
 	return r

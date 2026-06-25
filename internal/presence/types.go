@@ -30,6 +30,7 @@ type PrettyPresence struct {
 	Spotify                 *Spotify          `json:"spotify"`
 	ListeningToYouTubeMusic bool              `json:"listening_to_youtube_music"`
 	YouTubeMusic            *YouTubeMusic     `json:"youtube_music"`
+	NowPlaying              *NowPlaying       `json:"now_playing"`
 	Activities              []any             `json:"activities"`
 	KV                      map[string]string `json:"kv"`
 }
@@ -54,6 +55,22 @@ type YouTubeMusic struct {
 	AlbumArtURL *string `json:"album_art_url"` // resolved assets.large_image
 	URL         *string `json:"url"`           // link to the track (details_url)
 	Timestamps  any     `json:"timestamps"`
+}
+
+// NowPlaying is a single, source-agnostic music object that normalizes whatever
+// the user is currently listening to (Spotify, YouTube Music, ...). It is nil
+// when nothing is playing. Clients can render one consistent widget regardless
+// of source, and compute live progress from timestamps + duration_ms.
+type NowPlaying struct {
+	Source      string  `json:"source"` // "spotify" | "youtube_music"
+	Song        any     `json:"song"`
+	Artist      any     `json:"artist"`
+	Album       *string `json:"album"`
+	AlbumArtURL *string `json:"album_art_url"`
+	TrackID     *string `json:"track_id"`
+	TrackURL    *string `json:"track_url"`
+	Timestamps  any     `json:"timestamps"`  // {start, end} in ms, when known
+	DurationMs  *int64  `json:"duration_ms"` // end-start, when both known
 }
 
 // Error is a typed error carrying the HTTP status and machine code expected by

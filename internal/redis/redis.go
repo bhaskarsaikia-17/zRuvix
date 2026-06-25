@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"log"
 	"math/rand"
+	"time"
 
 	goredis "github.com/redis/go-redis/v9"
 )
@@ -32,6 +33,14 @@ func Connect(uri string) error {
 	if err != nil {
 		return err
 	}
+	// Bound worst-case latency: if Redis is unreachable, fail fast rather than
+	// hanging HTTP handlers (history/stats/kv all touch Redis).
+	opts.DialTimeout = 3 * time.Second
+	opts.ReadTimeout = 2 * time.Second
+	opts.WriteTimeout = 2 * time.Second
+	opts.PoolTimeout = 2 * time.Second
+	opts.MaxRetries = -1 // no automatic retries/backoff
+
 	client = goredis.NewClient(opts)
 	go subscribeGlobalSync()
 	return nil
@@ -127,4 +136,37 @@ func HIncrBy(key, field string, amount int64) {
 // Publish sends a message to a pub/sub channel.
 func Publish(channel, message string) {
 	client.Publish(ctx, channel, message)
+}
+
+// LPush prepends a value to the list at key.
+func LPush(key, value string) {
+	client.LPush(ctx, key, value)
+}
+
+// LTrim trims the list at key to the inclusive range [start, stop].
+func LTrim(key string, start, stop int64) {
+	client.LTrim(ctx, key, start, stop)
+}
+
+// LRange returns elements of the list at key in the inclusive range.
+func LRange(key string, start, stop int64) []string {
+	v, err := client.LRange(ctx, key, start, stop).Result()
+	if err != nil {
+		return nil
+	}
+	return v
+}
+
+// Incr atomically increments the integer at key and returns the new value.
+func Incr(key string) int64 {
+	v, err := client.Incr(ctx, key).Result()
+	if err != nil {
+		return 0
+	}
+	return v
+}
+
+// Expire sets a TTL (in seconds) on key.
+func Expire(key string, seconds int) {
+	client.Expire(ctx, key, time.Duration(seconds)*time.Second)
 }
