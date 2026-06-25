@@ -10,6 +10,8 @@
 #   ./setup.sh logs       Follow live logs (Ctrl+C to exit)
 #   ./setup.sh env        Edit .env, then restart the service
 #   ./setup.sh build      Rebuild the binary and restart the service
+#   ./setup.sh proxy <domain> [email]   Set up nginx + HTTPS (Let's Encrypt)
+#   ./setup.sh open <port>              Open a TCP port in the firewall (iptables)
 #   ./setup.sh uninstall  Stop & remove the systemd service (keeps files)
 #
 set -euo pipefail
@@ -177,8 +179,109 @@ cmd_uninstall() {
   ok "Service removed (binary, .env and source left in place)"
 }
 
+# --- reverse proxy / firewall ------------------------------------------------
+# Read the configured HTTP port from .env (default 4001).
+app_port() {
+  local p=""
+  if [ -f "$ENV_FILE" ]; then
+    p="$(grep -E '^PORT=' "$ENV_FILE" | tail -n1 | cut -d= -f2- | tr -d '[:space:]')"
+  fi
+  echo "${p:-4001}"
+}
+
+# Open a TCP port in iptables. Uses -I (insert at top) so the rule lands BEFORE
+# any catch-all REJECT rule — the classic Oracle Cloud gotcha where -A (append)
+# adds the rule after the REJECT and has no effect. Persists if possible.
+open_port() {
+  local p="$1"
+  [ -n "$p" ] || die "open: missing port (usage: ./setup.sh open <port>)"
+  $SUDO iptables -I INPUT -p tcp --dport "$p" -j ACCEPT
+  if command -v netfilter-persistent >/dev/null 2>&1; then
+    $SUDO netfilter-persistent save >/dev/null 2>&1 || true
+  fi
+  ok "Opened TCP port $p in iptables"
+  warn "On Oracle Cloud you must ALSO add an ingress rule for port $p in the VCN Security List."
+}
+
+cmd_open() { open_port "${1:-}"; }
+
+cmd_proxy() {
+  local domain="${1:-}" email="${2:-}" port
+  [ -n "$domain" ] || die "Usage: ./setup.sh proxy <domain> [email]"
+  port="$(app_port)"
+
+  log "Installing nginx + certbot ..."
+  $SUDO apt-get update -y
+  DEBIAN_FRONTEND=noninteractive $SUDO apt-get install -y nginx certbot python3-certbot-nginx
+
+  log "Opening firewall ports 80 and 443 ..."
+  open_port 80
+  open_port 443
+
+  log "Writing nginx site: ${domain} -> 127.0.0.1:${port} ..."
+  # nginx variables are escaped (\$) so bash leaves them for nginx; ${domain}
+  # and ${port} are expanded by bash. The map enables WebSocket upgrades for
+  # the /socket endpoint while leaving normal HTTP requests untouched.
+  $SUDO tee "/etc/nginx/sites-available/${SERVICE_NAME}.conf" >/dev/null <<EOF
+map \$http_upgrade \$connection_upgrade {
+    default upgrade;
+    ''      close;
+}
+
+server {
+    listen 80;
+    listen [::]:80;
+    server_name ${domain};
+
+    location / {
+        proxy_pass http://127.0.0.1:${port};
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection \$connection_upgrade;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_read_timeout 86400;
+    }
+}
+EOF
+
+  $SUDO ln -sf "/etc/nginx/sites-available/${SERVICE_NAME}.conf" \
+              "/etc/nginx/sites-enabled/${SERVICE_NAME}.conf"
+  # Remove the default site so it doesn't shadow ours.
+  $SUDO rm -f /etc/nginx/sites-enabled/default
+  $SUDO nginx -t
+  $SUDO systemctl reload nginx
+  ok "nginx serving HTTP for ${domain}"
+
+  log "Requesting HTTPS certificate (Let's Encrypt) ..."
+  if [ -n "$email" ]; then
+    $SUDO certbot --nginx -d "$domain" --redirect --non-interactive --agree-tos -m "$email"
+  else
+    $SUDO certbot --nginx -d "$domain" --redirect --non-interactive --agree-tos \
+      --register-unsafely-without-email || $SUDO certbot --nginx -d "$domain"
+  fi
+
+  # Point the app's EXTERNAL_URL at the HTTPS domain and restart.
+  if [ -f "$ENV_FILE" ]; then
+    if grep -qE '^EXTERNAL_URL=' "$ENV_FILE"; then
+      $SUDO sed -i "s#^EXTERNAL_URL=.*#EXTERNAL_URL=https://${domain}#" "$ENV_FILE"
+    else
+      echo "EXTERNAL_URL=https://${domain}" | $SUDO tee -a "$ENV_FILE" >/dev/null
+    fi
+    $SUDO systemctl restart "$SERVICE_NAME" 2>/dev/null || true
+  fi
+
+  echo
+  ok "Done. API live at: https://${domain}/"
+  warn "Make sure ${domain}'s DNS A record points to this server,"
+  warn "and (Oracle) that ports 80 & 443 are open in the VCN Security List."
+}
+
 usage() {
-  sed -n '3,20p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+  echo "zRuvix — usage:"
+  grep -E '^#   \./setup\.sh' "${BASH_SOURCE[0]}" | sed 's/^#   //'
 }
 
 # --- dispatch ----------------------------------------------------------------
@@ -191,6 +294,8 @@ case "${1:-}" in
   logs)      cmd_logs ;;
   env)       cmd_env ;;
   build)     cmd_build ;;
+  proxy)     shift; cmd_proxy "${1:-}" "${2:-}" ;;
+  open)      shift; cmd_open "${1:-}" ;;
   uninstall) cmd_uninstall ;;
   ""|-h|--help|help) usage ;;
   *) die "Unknown command: $1 (run ./setup.sh help)" ;;
